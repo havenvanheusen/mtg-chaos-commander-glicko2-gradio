@@ -93,6 +93,7 @@ def load_players(player_file="players.json"):
             players.append(Player(p['name'], p['rating'], p['rd'], p['volatility'], last_played, season_start))
         return players
     except (FileNotFoundError, json.JSONDecodeError):
+        print("! No player data found. Starting with empty player list.")
         return []
 
 def save_players(players, player_file="players.json"):
@@ -373,17 +374,44 @@ def generate_excel_output(games, output_file=None):
     df.to_excel(output_file, index=False)
     print(f"Excel file saved as {output_file}")
 
-def display_game_history(game_history_file="game_history.json"):
-    """Display game history, optionally filtered by date or player."""
+def display_game_history(all_players, game_history_file="game_history.json"):
+    """Display game history, optionally filtered by date, player, or last game per player."""
     try:
         with open(game_history_file, 'r') as f:
             history = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("! No game history found.")
+        input("Press Enter to return to the main menu...")
         return
 
-    filter_type = input("Filter by (d)ate, (p)layer, or (a)ll: ").strip().lower()
-    if filter_type == 'd':
+    filter_type = input("Filter by (d)ate, (p)layer, (l)ast game per player, or (a)ll: ").strip().lower()
+    if filter_type == 'l':
+        # Find the last game for each player
+        last_games = {}
+        for game in sorted(history, key=lambda x: x['date'], reverse=True):
+            game_date = datetime.strptime(game['date'], "%Y-%m-%d").date()
+            for name, place in game['placements']:
+                if name not in last_games:
+                    last_games[name] = {'date': game_date, 'place': place}
+        if not last_games:
+            print("! No games found for any players.")
+            input("Press Enter to return to the main menu...")
+            return
+        print("\n=== Last Game Per Player ===")
+        for player in sorted(all_players, key=lambda x: x.name):
+            if player.name in last_games:
+                game_info = last_games[player.name]
+                medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(game_info['place'], "   ")
+                print(f"{player.name}:")
+                print(f"  Last Game Date: {game_info['date']}")
+                print(f"  {medal} Placement: {game_info['place']}")
+                print(f"  Stats After Game: Rating={player.rating:.1f}, RD={player.rd:.1f}, Vol={player.volatility:.4f}")
+                print()
+            else:
+                print(f"{player.name}: No games played yet.")
+                print()
+        input("Press Enter to return to the main menu...")
+    elif filter_type == 'd':
         date_str = input("Enter date (YYYY-MM-DD): ").strip()
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -395,18 +423,24 @@ def display_game_history(game_history_file="game_history.json"):
     else:
         filter_type = 'a'
 
-    print("\n=== Game History ===")
-    for game in sorted(history, key=lambda x: x['date']):
-        game_date = datetime.strptime(game['date'], "%Y-%m-%d").date()
-        if filter_type == 'd' and game_date != target_date:
-            continue
-        if filter_type == 'p' and not any(name == player_name for name, _ in game['placements']):
-            continue
-        print(f"Date: {game['date']}")
-        for i, (name, place) in enumerate(sorted(game['placements'], key=lambda x: x[1]), 1):
-            medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(place, "   ")
-            print(f"{medal} {i}. {name}: Place {place}")
-        print()
+    if filter_type in ['d', 'p', 'a']:
+        print("\n=== Game History ===")
+        found_games = False
+        for game in sorted(history, key=lambda x: x['date']):
+            game_date = datetime.strptime(game['date'], "%Y-%m-%d").date()
+            if filter_type == 'd' and game_date != target_date:
+                continue
+            if filter_type == 'p' and not any(name == player_name for name, _ in game['placements']):
+                continue
+            found_games = True
+            print(f"Date: {game['date']}")
+            for i, (name, place) in enumerate(sorted(game['placements'], key=lambda x: x[1]), 1):
+                medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(place, "   ")
+                print(f"{medal} {i}. {name}: Place {place}")
+            print()
+        if not found_games:
+            print("! No games match the filter.")
+        input("Press Enter to return to the main menu...")
 
 def display_leaderboard(all_players, game_history_file="game_history.json"):
     """Display leaderboard with ratings and stats."""
@@ -432,12 +466,16 @@ def display_leaderboard(all_players, game_history_file="game_history.json"):
                 stats[names[0]]['losses'] += 1
 
     print("\n=== Leaderboard ===")
-    for p in sorted(all_players, key=lambda x: x.rating, reverse=True):
-        rank = sorted(all_players, key=lambda x: x.rating, reverse=True).index(p) + 1
-        medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, "   ")
-        s = stats.get(p.name, {'games': 0, 'wins': 0, 'ties': 0, 'losses': 0})
-        print(f"{medal} {p.name}: Rating={p.rating:.1f}, RD={p.rd:.1f}, Vol={p.volatility:.4f}, "
-              f"Games={s['games']}, Wins={s['wins']}, Ties={s['ties']}, Losses={s['losses']}")
+    if not all_players:
+        print("! No players found.")
+    else:
+        for p in sorted(all_players, key=lambda x: x.rating, reverse=True):
+            rank = sorted(all_players, key=lambda x: x.rating, reverse=True).index(p) + 1
+            medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, "   ")
+            s = stats.get(p.name, {'games': 0, 'wins': 0, 'ties': 0, 'losses': 0})
+            print(f"{medal} {p.name}: Rating={p.rating:.1f}, RD={p.rd:.1f}, Vol={p.volatility:.4f}, "
+                  f"Games={s['games']}, Wins={s['wins']}, Ties={s['ties']}, Losses={s['losses']}")
+    input("Press Enter to return to the main menu...")
 
 def undo_last_game(all_players, player_file="players.json", game_history_file="game_history.json", backup_file="players_backup.json"):
     """Revert the last game by restoring player ratings and reprocessing history."""
@@ -446,6 +484,7 @@ def undo_last_game(all_players, player_file="players.json", game_history_file="g
             backup_data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("! No backup found. Cannot undo.")
+        input("Press Enter to return to the main menu...")
         return
 
     try:
@@ -453,10 +492,12 @@ def undo_last_game(all_players, player_file="players.json", game_history_file="g
             history = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("! No game history found. Cannot undo.")
+        input("Press Enter to return to the main menu...")
         return
 
     if not history:
         print("! No games to undo.")
+        input("Press Enter to return to the main menu...")
         return
 
     # Restore player ratings from backup
@@ -484,6 +525,7 @@ def undo_last_game(all_players, player_file="players.json", game_history_file="g
 
     save_players(all_players)
     print("Last game undone and ratings updated.")
+    input("Press Enter to return to the main menu...")
 
 def run_normal_mode():
     """Run the main program loop for managing multiplayer games."""
@@ -496,6 +538,7 @@ def run_normal_mode():
     while True:
         mode = input("\nEnter 'manual', 'file', 'history', 'leaderboard', 'undo', or 'exit': ").strip().lower()
         if mode == 'exit':
+            print("Exiting Glicko-2 Tournament Manager. Goodbye!")
             break
         elif mode == 'manual':
             game_date = input_date("Enter game date (YYYY-MM-DD): ")
@@ -513,13 +556,17 @@ def run_normal_mode():
                 generate_excel_output([(game_date, placements)])
             else:
                 print("! Game entry cancelled. Start over.")
+            input("Press Enter to return to the main menu...")
         elif mode == 'file':
             file_path = input("Enter path to game file: ").strip()
             dry_run = input("Run in dry run mode? (y/n): ").strip().lower() == 'y'
             games = read_game_file(file_path, all_players, dry_run)
             if not games or dry_run:
-                if not dry_run:
+                if dry_run:
+                    print("Dry run complete. No changes made.")
+                else:
                     print("! No valid games to process. Try again.")
+                input("Press Enter to return to the main menu...")
                 continue
             processed_games = []
             save_players(all_players, "players_backup.json")
@@ -527,9 +574,11 @@ def run_normal_mode():
                 if display_verification(game_date, placements):
                     process_game([p for p, _ in placements], placements, game_date)
                     processed_games.append((game_date, placements))
-                    break  # Exit loop after processing one game to avoid re-verification
+                    print("Game processed successfully.")
+                    input("Press Enter to process the next game or return to the main menu...")
                 else:
                     print(f"! Game on {game_date} cancelled. Skipping.")
+                    input("Press Enter to process the next game or return to the main menu...")
                     continue
             if processed_games:
                 print("\n=== Final Standings ===")
@@ -542,14 +591,16 @@ def run_normal_mode():
                 generate_excel_output(processed_games)
             else:
                 print("! No games were processed.")
+            input("Press Enter to return to the main menu...")
         elif mode == 'history':
-            display_game_history()
+            display_game_history(all_players)
         elif mode == 'leaderboard':
             display_leaderboard(all_players)
         elif mode == 'undo':
             undo_last_game(all_players)
         else:
             print("! Invalid mode. Please enter 'manual', 'file', 'history', 'leaderboard', 'undo', or 'exit'.")
+            input("Press Enter to return to the main menu...")
 
 def main():
     """Entry point for the Glicko-2 multiplayer rating system."""
@@ -559,10 +610,11 @@ def main():
         if mode in ['test', '']:
             break
         print("! Please enter 'TEST' or press Enter. Please try again.")
+        input("Press Enter to try again...")
     if mode == "test":
         print("Test mode coming soon!")
-    else:
-        run_normal_mode()
+        input("Press Enter to return to the main menu...")
+    run_normal_mode()
 
 if __name__ == "__main__":
     main()
