@@ -1,6 +1,6 @@
-# 🏆 MTG Chaos Commander Glicko-2 Calculator
+# 🏆 MTG Chaos Commander Glicko-2 Calculator with Gradio UI
 
-*A robust rating system for Magic: The Gathering Chaos Commander leagues, supporting multiplayer pods and draft events.*
+*A robust rating system for Magic: The Gathering Chaos Commander leagues, supporting multiplayer pods and draft events. Forked from and inspired by https://github.com/ahopeh/mtg-chaos-commander-glicko2*
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 [MIT License](LICENSE)
@@ -16,28 +16,24 @@
 ---
 
 ## 📦 Installation
+This process assumes you have Python > 3.8 installed, setup, and functional. While this should work on any version of Python 3.8 or later, it was tested on 3.12.
+
 ```bash
-git clone https://github.com/ahopeh/mtg-chaos-commander-glicko2.git
-cd mtg-chaos-commander-glicko2
-python3 glicko2_calculator.py
+# Clone the repository
+git clone https://github.com/havenvanheusen/mtg-chaos-commander-glicko2-gradio.git
 
-Enter season start date (YYYY-MM-DD): 2025-01-01
+# Enter the project directory
+cd mtg-chaos-commander-glicko2-gradio
 
-[1] Add new player
-[2] Select existing player
+# Create a new Python environment
+python -m venv venv
 
-Placement for PlayerA: 1  # 1st place
-Placement for PlayerB: 2  # 2nd place
+# Activate the Python environment (only use one based on your platform)
+source venv/bin/activate # For Mac and Linux
+venv\Scripts\activate # For Windows
 
-```python
-# Example output after a game:
-🥇 1. Alice (Rating: 1624.3 ▲+15.2)
-🥈 2. Bob (Rating: 1555.7 ▼-8.4)
-🥉 3. Charlie (Rating: 1501.1 ▼-12.6)
+# Launch the UI
+python3 gui.py
 ```
 
-.
-├── glicko2_calculator.py  # Main logic
-├── README.md             # This file
-├── LICENSE               # MIT License
-└── .gitignore            # Ignores Python cache files
+This was forked from and inspired by https://github.com/ahopeh/mtg-chaos-commander-glicko2
