@@ -7,6 +7,10 @@ __pycache__/
 venv/
 env/
 .venv/
+.roorules*
+*.json
+*.old
+*.db
 
 # OS
 .DS_Store
