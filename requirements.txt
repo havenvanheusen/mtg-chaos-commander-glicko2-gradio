@@ -1,0 +1,2 @@
+gradio==5.36.2
+matplotlib==3.10.3
