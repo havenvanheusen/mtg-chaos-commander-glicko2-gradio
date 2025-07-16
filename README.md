@@ -3,7 +3,7 @@
 *A robust rating system for Magic: The Gathering Chaos Commander leagues, now with a user-friendly web interface.*
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-[MIT License](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
